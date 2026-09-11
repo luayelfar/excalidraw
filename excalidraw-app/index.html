@@ -248,5 +248,63 @@
     </script>
     <!-- end LEGACY GOOGLE ANALYTICS -->
     <% } %>
+      <!-- ========================================== -->
+    <!-- 🚀 SUPABASE AUTONOMOUS SYNC & AI HUB (V3)  -->
+    <!-- ========================================== -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      window.addEventListener('load', () => {
+        // ۱. قفل کردنِ سایت روی «اتاق ابدی»
+        const PERMANENT_ROOM = '#room=876717e134d14e5e46af,A0mPtDJGKIi9YLy851vbXg';
+        if (!window.location.hash.includes('room=')) {
+          window.location.hash = PERMANENT_ROOM;
+          window.location.reload();
+          return; 
+        }
+
+        // ۲. تنظیمات گاوصندوق (با کلیدهای اختصاصی شما)
+        const SUPABASE_URL = 'https://wzuziwmasrwrxgsbbcgk.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_TGIYmi_FfPzD05Y0OH8R-Q_PVPwewXL';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ۳. ساخت یک نشانگر وضعیتِ هوشمند و کوچک
+        const statusBadge = document.createElement('div');
+        statusBadge.style.cssText = 'position:fixed; bottom:20px; left:20px; z-index:9999; padding:8px 15px; background:rgba(16, 185, 129, 0.9); color:white; font-family:Tahoma; font-size:12px; font-weight:bold; border-radius:20px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all 0.3s; pointer-events: none;';
+        statusBadge.innerHTML = '☁️ متصل به فضای ابری';
+        document.body.appendChild(statusBadge);
+
+        // ۴. ایجنتِ نامرئیِ همگام‌ساز (Auto-Save Agent)
+        let lastSavedData = '';
+
+        setInterval(async () => {
+          const currentData = localStorage.getItem('excalidraw');
+          
+          if (currentData && currentData !== lastSavedData) {
+            statusBadge.innerHTML = '🔄 در حال همگام‌سازی...';
+            statusBadge.style.background = '#f59e0b'; 
+            
+            const parsedData = JSON.parse(currentData);
+            if(parsedData && parsedData.length > 0) {
+                const { error } = await supabase.from('drawings').insert([{ canvas_data: parsedData }]);
+                
+                if (!error) {
+                  lastSavedData = currentData;
+                  statusBadge.innerHTML = '✅ ذخیره شد';
+                  statusBadge.style.background = '#10b981'; 
+                } else {
+                  statusBadge.innerHTML = '❌ خطای اتصال به دیتابیس';
+                  statusBadge.style.background = '#ef4444'; 
+                }
+                
+                setTimeout(() => {
+                  statusBadge.innerHTML = '☁️ متصل به فضای ابری';
+                  statusBadge.style.background = 'rgba(16, 185, 129, 0.9)';
+                }, 3000);
+            }
+          }
+        }, 10000); 
+      });
+    </script>
+    <!-- ========================================== -->
   </body>
 </html>
