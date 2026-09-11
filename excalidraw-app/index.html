@@ -248,5 +248,78 @@
     </script>
     <!-- end LEGACY GOOGLE ANALYTICS -->
     <% } %>
+      <!-- ========================================== -->
+    <!-- 🚀 SUPABASE ULTIMATE AI HUB (V4 - UI/UX)   -->
+    <!-- ========================================== -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      window.addEventListener('load', async () => {
+        // ۱. قفل کردنِ سایت روی «اتاق ابدی»
+        const PERMANENT_ROOM = '#room=876717e134d14e5e46af,A0mPtDJGKIi9YLy851vbXg';
+        if (!window.location.hash.includes('room=')) {
+          window.location.hash = PERMANENT_ROOM;
+          window.location.reload();
+          return; 
+        }
+
+        // ۲. تنظیمات گاوصندوق
+        const SUPABASE_URL = 'https://wzuziwmasrwrxgsbbcgk.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_TGIYmi_FfPzD05Y0OH8R-Q_PVPwewXL';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ۳. ساخت رابط کاربری (UI) بسیار جذاب و هماهنگ با محیط
+        const uiWidget = document.createElement('div');
+        uiWidget.style.cssText = `
+          position: fixed; bottom: 24px; left: 24px; z-index: 9999;
+          background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px);
+          border: 1px solid #e5e7eb; border-radius: 12px;
+          padding: 10px 16px; font-family: system-ui, -apple-system, sans-serif;
+          font-size: 13px; font-weight: 600; color: #374151;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 8px;
+          transition: all 0.4s ease;
+        `;
+        uiWidget.innerHTML = '<span style="font-size:16px">☁️</span> <span>در حال اتصال...</span>';
+        document.body.appendChild(uiWidget);
+
+        // ۴. سیستم لودِ خودکار (برای مرورگرهای جدید)
+        const localData = localStorage.getItem('excalidraw');
+        if (!localData || localData === '[]' || localData === '{}') {
+            uiWidget.innerHTML = '<span style="font-size:16px">📥</span> <span>در حال دریافت آخرین نسخه...</span>';
+            const { data } = await supabase.from('drawings').select('canvas_data').order('id', { ascending: false }).limit(1);
+            if (data && data.length > 0) {
+                localStorage.setItem('excalidraw', JSON.stringify(data[0].canvas_data));
+                uiWidget.innerHTML = '<span style="font-size:16px">✨</span> <span>با موفقیت بارگذاری شد</span>';
+                setTimeout(() => window.location.reload(), 1000);
+                return;
+            }
+        }
+
+        uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span>متصل و همگام</span>';
+
+        // ۵. ایجنتِ نامرئیِ ذخیره‌ساز (هر ۱۰ ثانیه)
+        let lastSavedData = localData || '';
+        setInterval(async () => {
+          const currentData = localStorage.getItem('excalidraw');
+          if (currentData && currentData !== lastSavedData && currentData !== '[]') {
+            uiWidget.innerHTML = '<span style="font-size:16px">🔄</span> <span style="color:#d97706">در حال همگام‌سازی...</span>';
+            const parsedData = JSON.parse(currentData);
+            
+            const { error } = await supabase.from('drawings').insert([{ canvas_data: parsedData }]);
+            
+            if (!error) {
+              lastSavedData = currentData;
+              uiWidget.innerHTML = '<span style="font-size:16px">✅</span> <span style="color:#059669">در گاوصندوق ذخیره شد</span>';
+            } else {
+              uiWidget.innerHTML = '<span style="font-size:16px">❌</span> <span style="color:#dc2626">خطا در ارتباط</span>';
+            }
+            
+            setTimeout(() => {
+              uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span style="color:#374151">متصل و همگام</span>';
+            }, 3500);
+          }
+        }, 10000);
+      });
+    </script>
+    <!-- ========================================== -->
   </body>
 </html>
