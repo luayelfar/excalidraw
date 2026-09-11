@@ -248,5 +248,54 @@
     </script>
     <!-- end LEGACY GOOGLE ANALYTICS -->
     <% } %>
-  </body>
+ <!-- ========================================== -->
+    <!-- 🚀 SUPABASE VAULT INTEGRATION (AGENTIC)    -->
+    <!-- ========================================== -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+      window.addEventListener('load', () => {
+        // ۱. کلیدهای طلایی خود را دقیقاً داخل کوتیشن‌های زیر قرار دهید:
+        const SUPABASE_URL = 'https://wzuziwmasrwrxgsbbcgk.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_TGIYmi_FfPzD05Y0OH8R-Q_PVPwewXL';
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // ۲. ساخت دکمه جادویی ذخیره در گاوصندوق
+        const saveBtn = document.createElement('button');
+        saveBtn.innerHTML = '💾 ذخیره در گاوصندوق Supabase';
+        saveBtn.style.cssText = 'position:fixed; bottom:20px; right:20px; z-index:9999; padding:12px 20px; background:#4f46e5; color:white; font-family:Tahoma; font-weight:bold; border:none; border-radius:8px; cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+        
+        saveBtn.onclick = async () => {
+          saveBtn.innerHTML = '⏳ در حال ارسال به سرور...';
+          // خواندن نقاشی از حافظه مرورگر
+          const drawingData = localStorage.getItem('excalidraw');
+          
+          if (drawingData) {
+            // ارسال به جدول drawings در سوپابیس
+            const { error } = await supabase.from('drawings').insert([
+              { canvas_data: JSON.parse(drawingData) }
+            ]);
+            
+            if (!error) {
+              saveBtn.innerHTML = '✅ با موفقیت ذخیره شد!';
+              saveBtn.style.background = '#10b981';
+            } else {
+              saveBtn.innerHTML = '❌ خطا در ذخیره‌سازی';
+              saveBtn.style.background = '#ef4444';
+            }
+          } else {
+             saveBtn.innerHTML = '⚠️ تخته خالی است!';
+          }
+          
+          setTimeout(() => {
+            saveBtn.innerHTML = '💾 ذخیره در گاوصندوق Supabase';
+            saveBtn.style.background = '#4f46e5';
+          }, 3000);
+        };
+
+        document.body.appendChild(saveBtn);
+      });
+    </script>
+    <!-- ========================================== -->
+    </body>
 </html>
