@@ -249,81 +249,88 @@
     <!-- end LEGACY GOOGLE ANALYTICS -->
     <% } %>
 <!-- ========================================== -->
-    <!-- 🚀 SUPABASE ABSOLUTE STABILITY HUB (FINAL) -->
+    <!-- 🚀 SUPABASE NETWORK-RESILIENT HUB (V7)     -->
     <!-- ========================================== -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-      // مسدود کردن سرورهای عمومی Excalidraw برای جلوگیری از کرش
+      // 🛡️ مسدودسازی سرورهای خارجی برای جلوگیری از کرش در اینترنت ضعیف
       const originalFetch = window.fetch;
       window.fetch = async function() {
         if (arguments[0] && typeof arguments[0] === 'string' && arguments[0].includes('json.excalidraw.com')) {
-          return new Response(JSON.stringify({ id: "enterprise-fake-id" }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+          return new Response(JSON.stringify({ id: "safe-offline-id" }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         }
         return originalFetch.apply(this, arguments);
       };
 
       window.addEventListener('load', async () => {
-        // ۱. کلیدهای هسته مرکزی (دقیقاً کلیدهای خودتان را جایگذاری کنید)
-        const SUPABASE_URL = 'https://wzuziwmasrwrxgsbbcgk.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_TGIYmi_FfPzD05Y0OH8R-Q_PVPwewXL';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        // ۲. رابط کاربریِ وضعیت
-        const uiWidget = document.createElement('div');
-        uiWidget.style.cssText = 'position: fixed; bottom: 24px; left: 24px; z-index: 9999; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 16px; font-family: system-ui, sans-serif; font-size: 13px; font-weight: bold; color: #1f2937; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; pointer-events: none;';
-        document.body.appendChild(uiWidget);
-
+        // ۱. قفل اتاق
         const PERMANENT_ROOM = '#room=876717e134d14e5e46af,A0mPtDJGKIi9YLy851vbXg';
-        const localData = localStorage.getItem('excalidraw');
-        const isBoardEmpty = (!localData || localData === '[]' || localData === '{}');
-
-        // ۳. قانون اول معماری: اول دریافتِ دیتای مستر، بعد ورود به اتاق
-        if (isBoardEmpty) {
-            uiWidget.innerHTML = '📥 در حال دریافت اطلاعات از سرور مرکزی...';
-            try {
-                // دریافت آخرین بک‌آپ معتبر از دیتابیس
-                const { data } = await supabase.from('drawings').select('canvas_data').order('id', { ascending: false }).limit(1);
-                if (data && data.length > 0 && data[0].canvas_data) {
-                    localStorage.setItem('excalidraw', JSON.stringify(data[0].canvas_data));
-                }
-            } catch (err) { console.error(err); }
-            
-            // حالا که حافظه پر شد، وارد اتاق شو
-            window.location.hash = PERMANENT_ROOM;
-            window.location.reload();
-            return;
-        }
-
-        // ۴. اگر حافظه پر است اما در اتاق نیستیم، وارد اتاق شو
         if (!window.location.hash.includes('room=')) {
           window.location.hash = PERMANENT_ROOM;
           window.location.reload();
           return; 
         }
 
-        uiWidget.innerHTML = '⚡ سیستم یکپارچه متصل است';
+        // ۲. تنظیمات Supabase (کلیدهایتان را وارد کنید)
+        const SUPABASE_URL = 'https://wzuziwmasrwrxgsbbcgk.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_TGIYmi_FfPzD05Y0OH8R-Q_PVPwewXL';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // ۵. ایجنت ذخیره‌ساز (Auto-Save) بدون فشار به سیستم
+        // ۳. رابط کاربری واکنش‌گرا به اینترنت
+        const uiWidget = document.createElement('div');
+        uiWidget.style.cssText = 'position: fixed; bottom: 24px; left: 24px; z-index: 9999; background: rgba(255, 255, 255, 0.95); border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 16px; font-family: system-ui, sans-serif; font-size: 13px; font-weight: bold; color: #1f2937; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; pointer-events: none; transition: all 0.3s;';
+        document.body.appendChild(uiWidget);
+
+        // ۴. سیستم تشخیص قطعی اینترنت (Network Listeners)
+        window.addEventListener('offline', () => {
+            uiWidget.innerHTML = '<span style="font-size:16px">📴</span> <span style="color:#6b7280">آفلاین (ذخیره روی لپ‌تاپ)</span>';
+        });
+        window.addEventListener('online', () => {
+            uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span style="color:#2563eb">اینترنت متصل شد. در حال همگام‌سازی...</span>';
+        });
+
+        // ۵. لود اولیه امن
+        const localData = localStorage.getItem('excalidraw');
+        if ((!localData || localData === '[]' || localData === '{}') && navigator.onLine) {
+            uiWidget.innerHTML = '📥 دریافت اطلاعات از سرور...';
+            try {
+                const { data } = await supabase.from('drawings').select('canvas_data').eq('id', 1).single();
+                if (data && data.canvas_data) {
+                    localStorage.setItem('excalidraw', JSON.stringify(data.canvas_data));
+                    window.location.reload();
+                    return;
+                }
+            } catch (err) {}
+        }
+
+        uiWidget.innerHTML = navigator.onLine ? '⚡ سیستم یکپارچه متصل است' : '📴 آفلاین (ذخیره روی لپ‌تاپ)';
+
+        // ۶. ایجنت ناظرِ حساس به شبکه (Network-Aware Agent)
         let lastSavedData = localStorage.getItem('excalidraw') || '';
+        
         setInterval(async () => {
+          // اگر اینترنت قطع است، اصلاً کاری نکن و فقط محلی ذخیره بماند
+          if (!navigator.onLine) return;
+
           const currentData = localStorage.getItem('excalidraw');
           
           if (currentData && currentData !== lastSavedData && currentData !== '[]') {
-            uiWidget.innerHTML = '🔄 در حال همگام‌سازی امن...';
+            uiWidget.innerHTML = '🔄 در حال همگام‌سازی...';
             try {
                 const parsedData = JSON.parse(currentData);
-                // آپدیت دائمی ردیف شماره 1 برای جلوگیری از شلوغی دیتابیس
                 const { error } = await supabase.from('drawings').upsert([{ id: 1, canvas_data: parsedData }]);
                 
                 if (!error) {
                   lastSavedData = currentData;
-                  uiWidget.innerHTML = '✅ همگام‌سازی با موفقیت انجام شد';
+                  uiWidget.innerHTML = '✅ همگام‌سازی شد';
                 }
-            } catch(e) { console.log(e); }
+            } catch(e) { }
             
-            setTimeout(() => { uiWidget.innerHTML = '⚡ سیستم یکپارچه متصل است'; }, 3000);
+            setTimeout(() => { 
+                if(navigator.onLine) uiWidget.innerHTML = '⚡ سیستم یکپارچه متصل است'; 
+            }, 3000);
           }
-        }, 10000);
+        }, 15000); // 15 ثانیه
       });
     </script>
     <!-- ========================================== -->
