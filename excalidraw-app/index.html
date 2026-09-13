@@ -248,99 +248,85 @@
     </script>
     <!-- end LEGACY GOOGLE ANALYTICS -->
     <% } %>
-      <!-- ========================================== -->
-    <!-- 🚀 SUPABASE ENTERPRISE V8 (ZERO-BUG EDITION) -->
+   <!-- ========================================== -->
+    <!-- 🚀 SUPABASE V9 (OFFLINE FORTRESS & UI FIX) -->
     <!-- ========================================== -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-      // 🛡️ ۱. خفه‌کردن پیغام مزاحم هنگام خروج (پیشگیری از باگ ۳)
-      window.addEventListener('beforeunload', (event) => {
-          event.stopImmediatePropagation();
-      }, true);
-
-      // 🛡️ مسدود کردن سرورهای خارجی
-      const originalFetch = window.fetch;
-      window.fetch = async function() {
-        if (arguments[0] && typeof arguments[0] === 'string' && arguments[0].includes('json.excalidraw.com')) {
-          return new Response(JSON.stringify({ id: "safe-id" }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-        }
-        return originalFetch.apply(this, arguments);
-      };
+      // 🛡️ ۱. تزریق CSS برای نابودی باگ گرافیکی و جابجایی موس
+      const style = document.createElement('style');
+      style.innerHTML = `
+        /* مخفی کردن اخطار قطعی اینترنت که باعث جابجایی موس می‌شود */
+        .excalidraw .layer-ui__wrapper .error-container, .ErrorDialog { display: none !important; }
+        /* مخفی کردن پنل خراب سمت راست در زمان آفلاینی */
+        body.is-offline .excalidraw .layer-ui__wrapper .App-menu_right { display: none !important; }
+      `;
+      document.head.appendChild(style);
 
       window.addEventListener('load', async () => {
-        // ۲. قفل اتاق ابدی
         const PERMANENT_ROOM = '#room=876717e134d14e5e46af,A0mPtDJGKIi9YLy851vbXg';
-        if (!window.location.hash.includes('room=')) {
-          window.location.hash = PERMANENT_ROOM;
-          window.location.reload();
-          return; 
+        
+        // 🛡️ ۲. رفع باگِ سفیدی صفحه در زمان باز کردنِ اپلیکیشن (آفلاین)
+        // اگر آفلاین هستیم، از اتاق خارج شو تا تخته سفید نشود و کاملاً محلی کار کند
+        if (!navigator.onLine && window.location.hash.includes('room=')) {
+            window.location.hash = '';
+            window.location.reload();
+            return;
         }
-
-        // ۳. اتصال به گاوصندوق (کلیدها را بگذارید)
-        const SUPABASE_URL = 'https://wzuziwmasrwrxgsbbcgk.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_TGIYmi_FfPzD05Y0OH8R-Q_PVPwewXL';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-        // ۴. برچسب وضعیت (قابل کلیک برای آپدیت دستی)
-        const uiWidget = document.createElement('div');
-        uiWidget.style.cssText = 'position: fixed; bottom: 24px; left: 24px; z-index: 9999; background: rgba(255, 255, 255, 0.95); border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 16px; font-family: system-ui, sans-serif; font-size: 13px; font-weight: bold; color: #1f2937; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; transition: all 0.3s;';
-        uiWidget.title = "برای دریافت آخرین نسخه از دیتابیس کلیک کنید";
-        document.body.appendChild(uiWidget);
-
-        // تابع قدرتمند لود از دیتابیس
-        const forceLoadFromDB = async () => {
-            uiWidget.innerHTML = '<span style="font-size:16px">📥</span> <span style="color:#2563eb">دریافت از سرور مرکزی...</span>';
-            try {
-                const { data } = await supabase.from('drawings').select('canvas_data').eq('id', 1).single();
-                if (data && data.canvas_data && data.canvas_data.length > 0) {
-                    localStorage.setItem('excalidraw', JSON.stringify(data.canvas_data));
-                    window.location.reload();
-                } else {
-                    uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span>تخته در دیتابیس خالی است</span>';
-                }
-            } catch (err) { console.error(err); }
-        };
-
-        // با کلیک روی برچسب، دیتا به روز می‌شود (دکمه وحشت)
-        uiWidget.onclick = forceLoadFromDB;
-
-        // ۵. هوشِ تشخیص تخته خالی (پیشگیری از باگ سفید شدن)
-        let localData = localStorage.getItem('excalidraw');
-        let isBoardEmpty = true;
-        try {
-            const parsed = JSON.parse(localData);
-            if (Array.isArray(parsed) && parsed.length > 0) isBoardEmpty = false;
-        } catch(e) {}
-
-        if (isBoardEmpty && navigator.onLine) {
-            await forceLoadFromDB();
+        // اگر آنلاین هستیم، حتماً باید داخل اتاق باشیم
+        if (navigator.onLine && !window.location.hash.includes('room=')) {
+            window.location.hash = PERMANENT_ROOM;
+            window.location.reload();
             return;
         }
 
-        uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span>سیستم متصل و امن است</span>';
+        // ۳. اتصال به گاوصندوق ابدی
+        const SUPABASE_URL = 'لینک_پروژه_شما';
+        const SUPABASE_KEY = 'کلید_پابلیک_شما';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // ۶. ایجنت ذخیره‌ساز (هر 10 ثانیه)
-        let lastSavedData = localData || '';
+        // ۴. برچسب وضعیت
+        const uiWidget = document.createElement('div');
+        uiWidget.style.cssText = 'position: fixed; bottom: 24px; left: 24px; z-index: 9999; background: rgba(255, 255, 255, 0.95); border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 16px; font-family: system-ui, sans-serif; font-size: 13px; font-weight: bold; color: #1f2937; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; pointer-events: none; transition: all 0.3s;';
+        document.body.appendChild(uiWidget);
+
+        // مدیریت تغییر وضعیت اینترنت در لحظه
+        const updateNetworkUI = () => {
+            if (navigator.onLine) {
+                document.body.classList.remove('is-offline');
+                uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span style="color:#2563eb">اینترنت متصل شد...</span>';
+                // بازگشت به اتاق پس از وصل شدن اینترنت
+                if (!window.location.hash.includes('room=')) {
+                    setTimeout(() => { window.location.hash = PERMANENT_ROOM; window.location.reload(); }, 1500);
+                }
+            } else {
+                document.body.classList.add('is-offline');
+                uiWidget.innerHTML = '<span style="font-size:16px">📴</span> <span style="color:#6b7280">آفلاین (ذخیره امن روی لپ‌تاپ)</span>';
+            }
+        };
+        window.addEventListener('online', updateNetworkUI);
+        window.addEventListener('offline', updateNetworkUI);
+        updateNetworkUI(); // اجرای اولیه
+
+        if (navigator.onLine) { uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span>سیستم متصل و امن است</span>'; }
+
+        // ۵. ایجنت ذخیره‌ساز (فقط در زمان آنلاین بودن کار می‌کند)
+        let lastSavedData = localStorage.getItem('excalidraw') || '';
         setInterval(async () => {
-          if (!navigator.onLine) {
-              uiWidget.innerHTML = '<span style="font-size:16px">📴</span> <span style="color:#6b7280">آفلاین (ذخیره محلی)</span>';
-              return;
-          }
+          if (!navigator.onLine) return; // در زمان قطعی هیچ تلاشی برای ارسال نمی‌کند
           
           const currentData = localStorage.getItem('excalidraw');
-          if (currentData && currentData !== lastSavedData) {
+          if (currentData && currentData !== lastSavedData && currentData !== '[]') {
+            uiWidget.innerHTML = '<span style="font-size:16px">🔄</span> <span style="color:#d97706">در حال همگام‌سازی...</span>';
             try {
                 const parsedData = JSON.parse(currentData);
-                if (Array.isArray(parsedData) && parsedData.length > 0) {
-                    uiWidget.innerHTML = '<span style="font-size:16px">🔄</span> <span style="color:#d97706">در حال همگام‌سازی...</span>';
-                    const { error } = await supabase.from('drawings').upsert([{ id: 1, canvas_data: parsedData }]);
-                    if (!error) {
-                        lastSavedData = currentData;
-                        uiWidget.innerHTML = '<span style="font-size:16px">✅</span> <span style="color:#059669">ذخیره شد</span>';
-                    }
+                const { error } = await supabase.from('drawings').upsert([{ id: 1, canvas_data: parsedData }]);
+                if (!error) {
+                  lastSavedData = currentData;
+                  uiWidget.innerHTML = '<span style="font-size:16px">✅</span> <span style="color:#059669">ذخیره شد</span>';
                 }
             } catch(e) {}
-            setTimeout(() => { uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span style="color:#374151">سیستم متصل و امن است</span>'; }, 3000);
+            setTimeout(() => { if(navigator.onLine) uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span style="color:#374151">سیستم متصل و امن است</span>'; }, 3000);
           }
         }, 10000);
       });
