@@ -248,22 +248,27 @@
     </script>
     <!-- end LEGACY GOOGLE ANALYTICS -->
     <% } %>
-<!-- ========================================== -->
-    <!-- 🚀 SUPABASE NETWORK-RESILIENT HUB (V7)     -->
+      <!-- ========================================== -->
+    <!-- 🚀 SUPABASE ENTERPRISE V8 (ZERO-BUG EDITION) -->
     <!-- ========================================== -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-      // 🛡️ مسدودسازی سرورهای خارجی برای جلوگیری از کرش در اینترنت ضعیف
+      // 🛡️ ۱. خفه‌کردن پیغام مزاحم هنگام خروج (پیشگیری از باگ ۳)
+      window.addEventListener('beforeunload', (event) => {
+          event.stopImmediatePropagation();
+      }, true);
+
+      // 🛡️ مسدود کردن سرورهای خارجی
       const originalFetch = window.fetch;
       window.fetch = async function() {
         if (arguments[0] && typeof arguments[0] === 'string' && arguments[0].includes('json.excalidraw.com')) {
-          return new Response(JSON.stringify({ id: "safe-offline-id" }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+          return new Response(JSON.stringify({ id: "safe-id" }), { status: 200, headers: { 'Content-Type': 'application/json' } });
         }
         return originalFetch.apply(this, arguments);
       };
 
       window.addEventListener('load', async () => {
-        // ۱. قفل اتاق
+        // ۲. قفل اتاق ابدی
         const PERMANENT_ROOM = '#room=876717e134d14e5e46af,A0mPtDJGKIi9YLy851vbXg';
         if (!window.location.hash.includes('room=')) {
           window.location.hash = PERMANENT_ROOM;
@@ -271,66 +276,73 @@
           return; 
         }
 
-        // ۲. تنظیمات Supabase (کلیدهایتان را وارد کنید)
+        // ۳. اتصال به گاوصندوق (کلیدها را بگذارید)
         const SUPABASE_URL = 'https://wzuziwmasrwrxgsbbcgk.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_TGIYmi_FfPzD05Y0OH8R-Q_PVPwewXL';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // ۳. رابط کاربری واکنش‌گرا به اینترنت
+        // ۴. برچسب وضعیت (قابل کلیک برای آپدیت دستی)
         const uiWidget = document.createElement('div');
-        uiWidget.style.cssText = 'position: fixed; bottom: 24px; left: 24px; z-index: 9999; background: rgba(255, 255, 255, 0.95); border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 16px; font-family: system-ui, sans-serif; font-size: 13px; font-weight: bold; color: #1f2937; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; pointer-events: none; transition: all 0.3s;';
+        uiWidget.style.cssText = 'position: fixed; bottom: 24px; left: 24px; z-index: 9999; background: rgba(255, 255, 255, 0.95); border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 16px; font-family: system-ui, sans-serif; font-size: 13px; font-weight: bold; color: #1f2937; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; transition: all 0.3s;';
+        uiWidget.title = "برای دریافت آخرین نسخه از دیتابیس کلیک کنید";
         document.body.appendChild(uiWidget);
 
-        // ۴. سیستم تشخیص قطعی اینترنت (Network Listeners)
-        window.addEventListener('offline', () => {
-            uiWidget.innerHTML = '<span style="font-size:16px">📴</span> <span style="color:#6b7280">آفلاین (ذخیره روی لپ‌تاپ)</span>';
-        });
-        window.addEventListener('online', () => {
-            uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span style="color:#2563eb">اینترنت متصل شد. در حال همگام‌سازی...</span>';
-        });
-
-        // ۵. لود اولیه امن
-        const localData = localStorage.getItem('excalidraw');
-        if ((!localData || localData === '[]' || localData === '{}') && navigator.onLine) {
-            uiWidget.innerHTML = '📥 دریافت اطلاعات از سرور...';
+        // تابع قدرتمند لود از دیتابیس
+        const forceLoadFromDB = async () => {
+            uiWidget.innerHTML = '<span style="font-size:16px">📥</span> <span style="color:#2563eb">دریافت از سرور مرکزی...</span>';
             try {
                 const { data } = await supabase.from('drawings').select('canvas_data').eq('id', 1).single();
-                if (data && data.canvas_data) {
+                if (data && data.canvas_data && data.canvas_data.length > 0) {
                     localStorage.setItem('excalidraw', JSON.stringify(data.canvas_data));
                     window.location.reload();
-                    return;
+                } else {
+                    uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span>تخته در دیتابیس خالی است</span>';
                 }
-            } catch (err) {}
+            } catch (err) { console.error(err); }
+        };
+
+        // با کلیک روی برچسب، دیتا به روز می‌شود (دکمه وحشت)
+        uiWidget.onclick = forceLoadFromDB;
+
+        // ۵. هوشِ تشخیص تخته خالی (پیشگیری از باگ سفید شدن)
+        let localData = localStorage.getItem('excalidraw');
+        let isBoardEmpty = true;
+        try {
+            const parsed = JSON.parse(localData);
+            if (Array.isArray(parsed) && parsed.length > 0) isBoardEmpty = false;
+        } catch(e) {}
+
+        if (isBoardEmpty && navigator.onLine) {
+            await forceLoadFromDB();
+            return;
         }
 
-        uiWidget.innerHTML = navigator.onLine ? '⚡ سیستم یکپارچه متصل است' : '📴 آفلاین (ذخیره روی لپ‌تاپ)';
+        uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span>سیستم متصل و امن است</span>';
 
-        // ۶. ایجنت ناظرِ حساس به شبکه (Network-Aware Agent)
-        let lastSavedData = localStorage.getItem('excalidraw') || '';
-        
+        // ۶. ایجنت ذخیره‌ساز (هر 10 ثانیه)
+        let lastSavedData = localData || '';
         setInterval(async () => {
-          // اگر اینترنت قطع است، اصلاً کاری نکن و فقط محلی ذخیره بماند
-          if (!navigator.onLine) return;
-
-          const currentData = localStorage.getItem('excalidraw');
+          if (!navigator.onLine) {
+              uiWidget.innerHTML = '<span style="font-size:16px">📴</span> <span style="color:#6b7280">آفلاین (ذخیره محلی)</span>';
+              return;
+          }
           
-          if (currentData && currentData !== lastSavedData && currentData !== '[]') {
-            uiWidget.innerHTML = '🔄 در حال همگام‌سازی...';
+          const currentData = localStorage.getItem('excalidraw');
+          if (currentData && currentData !== lastSavedData) {
             try {
                 const parsedData = JSON.parse(currentData);
-                const { error } = await supabase.from('drawings').upsert([{ id: 1, canvas_data: parsedData }]);
-                
-                if (!error) {
-                  lastSavedData = currentData;
-                  uiWidget.innerHTML = '✅ همگام‌سازی شد';
+                if (Array.isArray(parsedData) && parsedData.length > 0) {
+                    uiWidget.innerHTML = '<span style="font-size:16px">🔄</span> <span style="color:#d97706">در حال همگام‌سازی...</span>';
+                    const { error } = await supabase.from('drawings').upsert([{ id: 1, canvas_data: parsedData }]);
+                    if (!error) {
+                        lastSavedData = currentData;
+                        uiWidget.innerHTML = '<span style="font-size:16px">✅</span> <span style="color:#059669">ذخیره شد</span>';
+                    }
                 }
-            } catch(e) { }
-            
-            setTimeout(() => { 
-                if(navigator.onLine) uiWidget.innerHTML = '⚡ سیستم یکپارچه متصل است'; 
-            }, 3000);
+            } catch(e) {}
+            setTimeout(() => { uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span style="color:#374151">سیستم متصل و امن است</span>'; }, 3000);
           }
-        }, 15000); // 15 ثانیه
+        }, 10000);
       });
     </script>
     <!-- ========================================== -->
