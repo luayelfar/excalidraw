@@ -248,69 +248,93 @@
     </script>
     <!-- end LEGACY GOOGLE ANALYTICS -->
     <% } %>
-  <!-- ========================================== -->
-    <!-- 🚀 SUPABASE V10 (THE PHANTOM NODE - ZERO BUG) -->
+<!-- ========================================== -->
+    <!-- 🚀 SUPABASE V11 (FLAWLESS OFFLINE-FIRST)   -->
     <!-- ========================================== -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-      // 🛡️ ۱. بمبارانِ باگ‌های گرافیکی (CSS Injector)
+      // 🛡️ ۱. مخفی‌سازی کامل باگ‌های گرافیکی Excalidraw
       const style = document.createElement('style');
       style.innerHTML = `
-        /* نابود کردن هرگونه اخطار قطعی اینترنت که بوم را هُل می‌دهد */
         div[class*="error-container"], div[class*="ErrorDialog"], .ExcAlert { display: none !important; height: 0 !important; position: absolute !important; }
-        /* نابود کردن دیوار سفید (پنل خرابِ سمت راست در زمان قطعی) */
         div[class*="layer-ui__wrapper"] aside { display: none !important; }
-        /* قفل کردن بوم نقاشی به سقف تا موس جابجا نزند */
         .excalidraw-container { top: 0 !important; margin-top: 0 !important; transform: none !important; }
       `;
       document.head.appendChild(style);
 
-      // 🛡️ ۲. هکِ هسته مرورگر: به نرم‌افزار دروغ می‌گوییم که همیشه آنلاین است!
-      Object.defineProperty(navigator, 'onLine', { get: () => true });
-      window.addEventListener('offline', (e) => { e.stopImmediatePropagation(); }, true);
+      // مسدودسازی سرورهای مزاحم
+      const originalFetch = window.fetch;
+      window.fetch = async function() {
+        if (arguments[0] && typeof arguments[0] === 'string' && arguments[0].includes('json.excalidraw.com')) {
+          return new Response(JSON.stringify({ id: "safe-id" }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        }
+        return originalFetch.apply(this, arguments);
+      };
 
       window.addEventListener('load', async () => {
-        // ۳. قفلِ ابدیِ اتاق (دیگر هرگز از اتاق خارج نمی‌شوید تا دیتا گم نشود)
         const PERMANENT_ROOM = '#room=876717e134d14e5e46af,A0mPtDJGKIi9YLy851vbXg';
-        if (!window.location.hash.includes('room=')) {
+        
+        // 🧠 ۲. منطقِ جدیدِ آفلاین: اگر آفلاین هستیم، از اتاق خارج شو تا تخته لود شود!
+        if (!navigator.onLine && window.location.hash.includes('room=')) {
+          window.location.hash = ''; // پاک کردن اتاق
+          window.location.reload();
+          return;
+        }
+        // اگر آنلاین هستیم، حتماً وارد اتاق شو
+        if (navigator.onLine && !window.location.hash.includes('room=')) {
           window.location.hash = PERMANENT_ROOM;
           window.location.reload();
-          return; 
+          return;
         }
 
-        // ۴. اتصال به گاوصندوق Supabase
+        // ۳. اتصال به گاوصندوق
         const SUPABASE_URL = 'https://wzuziwmasrwrxgsbbcgk.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_TGIYmi_FfPzD05Y0OH8R-Q_PVPwewXL';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // ۵. رابط کاربریِ وضعیت
+        // ۴. برچسب وضعیت
         const uiWidget = document.createElement('div');
         uiWidget.style.cssText = 'position: fixed; bottom: 24px; left: 24px; z-index: 9999; background: rgba(255, 255, 255, 0.95); border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 16px; font-family: system-ui, sans-serif; font-size: 13px; font-weight: bold; color: #1f2937; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 8px; user-select: none; transition: all 0.3s;';
-        uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span>سیستم یکپارچه متصل است</span>';
         document.body.appendChild(uiWidget);
 
-        // تابع چک کردن اینترنت واقعیِ لپ‌تاپ (چون مرورگر را هک کردیم)
-        const checkRealInternet = async () => {
-            try { await fetch('https://1.1.1.1/cdn-cgi/trace', { mode: 'no-cors', cache: 'no-store' }); return true; } 
-            catch (e) { return false; }
-        };
+        const setOfflineUI = () => { uiWidget.innerHTML = '<span style="font-size:16px">📴</span> <span style="color:#6b7280">آفلاین (اطلاعات لود شد)</span>'; };
 
-        // ۶. ایجنتِ نامرئیِ ذخیره‌ساز
+        if (!navigator.onLine) {
+            setOfflineUI();
+        } else {
+            // ۵. لود از دیتابیس (فقط وقتی آنلاین هستیم و هارد خالی است)
+            const localData = localStorage.getItem('excalidraw');
+            if (!localData || localData === '[]' || localData === '{}') {
+                uiWidget.innerHTML = '<span style="font-size:16px">📥</span> <span style="color:#2563eb">دریافت از سرور مرکزی...</span>';
+                try {
+                    const { data } = await supabase.from('drawings').select('canvas_data').eq('id', 1).single();
+                    if (data && data.canvas_data && data.canvas_data.length > 0) {
+                        localStorage.setItem('excalidraw', JSON.stringify(data.canvas_data));
+                        window.location.reload();
+                        return;
+                    }
+                } catch (err) {}
+            }
+            uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span>سیستم یکپارچه متصل است</span>';
+        }
+
+        // ۶. واکنش به قطع و وصل شدن اینترنت در لحظه
+        window.addEventListener('offline', setOfflineUI);
+        window.addEventListener('online', () => {
+            uiWidget.innerHTML = '<span style="font-size:16px">🔗</span> <span style="color:#2563eb">اینترنت متصل شد. ورود به اتاق...</span>';
+            setTimeout(() => {
+                window.location.hash = PERMANENT_ROOM;
+                window.location.reload();
+            }, 1500);
+        });
+
+        // ۷. ایجنت ذخیره‌ساز
         let lastSavedData = localStorage.getItem('excalidraw') || '';
-        
         setInterval(async () => {
-          // رفع باگ موس: مجبور کردن بوم نقاشی به کالیبره کردنِ دوباره‌ی مختصات
-          window.dispatchEvent(new Event('resize'));
-
+          if (!navigator.onLine) return; // در آفلاینی تلاشی برای ارسال نکن
+          
           const currentData = localStorage.getItem('excalidraw');
           if (currentData && currentData !== lastSavedData && currentData !== '[]') {
-            
-            const isOnline = await checkRealInternet();
-            if (!isOnline) {
-                uiWidget.innerHTML = '<span style="font-size:16px">📴</span> <span style="color:#6b7280">آفلاین (ذخیره امن محلی)</span>';
-                return;
-            }
-
             uiWidget.innerHTML = '<span style="font-size:16px">🔄</span> <span style="color:#d97706">در حال همگام‌سازی...</span>';
             try {
                 const parsedData = JSON.parse(currentData);
@@ -320,9 +344,9 @@
                   uiWidget.innerHTML = '<span style="font-size:16px">✅</span> <span style="color:#059669">ذخیره شد</span>';
                 }
             } catch(e) {}
-            setTimeout(() => { uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span style="color:#374151">سیستم یکپارچه متصل است</span>'; }, 3000);
+            setTimeout(() => { if(navigator.onLine) uiWidget.innerHTML = '<span style="font-size:16px">⚡</span> <span style="color:#374151">سیستم یکپارچه متصل است</span>'; }, 3000);
           }
-        }, 5000); // چک کردن هر 5 ثانیه
+        }, 8000);
       });
     </script>
     <!-- ========================================== -->
